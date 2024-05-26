@@ -1,333 +1,177 @@
-// #include <CountDown.h>
-// #include <LiquidCrystal.h>
+#include <CountDown.h>
+#include <LiquidCrystal.h>
 
-// CountDown CD(CountDown::MILLIS);
-// LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+CountDown CD(CountDown::MILLIS);
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
-// const int buttonAv = A0; //Avançar A0
-// const int buttonCh = A1; //Escolher A1
-// const int PWM = 9; // saída pwm para o circuito
-// unsigned long demora = 10; //bounce
-// unsigned long dezmin = 600000;	// 10 MINUTOS
-// unsigned long quinzemin = 900000;	// 15 MINUTOS
-// unsigned long vintemin = 1200000;   // 20 MINUTOS
-// byte AvSt = 0; //avanca estado
-// byte ChSt = 0; //escolhe estado
-// int estado;
-// byte lbs;
+enum STATES {
+  INIT,
+  SET_TIME,
+  SET_CURRENT,
+  SHOW_TIMER
+};
 
+const int decrementBtn = A0; //Botão de menos
+const int enterBtn = A1; //Botão de OK
+const int incrementBtn = A2; //Botão de mais
+const int PWM = 9; // saída pwm para o circuito
 
-// void setup() {
-//   // put your setup code here, to run once:
-//   pinMode(buttonAv, INPUT_PULLUP);
-//   pinMode(buttonCh, INPUT_PULLUP);
-//   pinMode(PWM, OUTPUT);
-//   analogWrite(PWM, 0);
-//   lcd.begin(16, 2);
-//   lcd.print("Welcome to tdcs");
-//   delay(900);
-//   estado = 0;
+unsigned long cycleDuration = 600000;	// 10 min
+const unsigned long cycleDurationIncrement = 60000; // 1 min
+
+float current = 0.1;
+const float currentIncrement = 0.1; // 0.1mA = 5.2
+const float pwmIncrement = 5.2; // 0.1mA = 5.2
+
+byte decrementBtnSt = 0; //avanca estado
+byte enterBtnSt = 0; //escolhe estado
+byte incrementBtnSt = 0; //escolhe estado
+enum STATES state;
+byte lbs;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(decrementBtn, INPUT_PULLUP);
+  pinMode(enterBtn, INPUT_PULLUP);
+  pinMode(incrementBtn, INPUT_PULLUP);
+  pinMode(PWM, OUTPUT);
+  analogWrite(PWM, 0);
+  lcd.begin(16, 2);
+  state = INIT;
+}
+
+bool Edge(byte sig) {
+
+  if (sig != lbs){ //
+//	lbs = sig;    
+   if (sig == 1) {
+   lbs = sig;    
+   return 1;
+//   lbs = sig;
+	}
+   else {
+	lbs = sig;
+	return 0;
+   }
+  }
+  else {
+	lbs = sig;
+	return 0;
+  }
+}
+
+void MaqEst() {
+
+  decrementBtnSt = digitalRead(decrementBtn);
+  enterBtnSt = digitalRead(enterBtn);
+  incrementBtnSt = digitalRead(incrementBtn);
+
+  // Serial.print("decrementBtnSt: ");
+  // Serial.println(decrementBtnSt);
+
+  // Serial.print("enterBtnSt: ");
+  // Serial.println(enterBtnSt);
+
+  // Serial.print("incrementBtnSt: ");
+  // Serial.println(incrementBtnSt);
+
+  // Serial.print("PWM: ");
+  // Serial.println((current/currentIncrement)*pwmIncrement);
+
+  delay(150);
  
-// }
+  switch (state) {
+	  case INIT:
+      lcd.clear();
+      lcd.print("Aperte um botao");
+      lcd.setCursor(0,1);
+      lcd.print("para iniciar");
 
-// bool Edge(byte sig) {
+      if (!decrementBtnSt | !enterBtnSt | !incrementBtnSt) {
+        state = SET_TIME;
+      }
 
-//   if (sig != lbs){ //
-// //	lbs = sig;    
-//    if (sig == 1) {
-//    lbs = sig;    
-//    return 1;
-// //   lbs = sig;
-// 	}
-//    else {
-// 	lbs = sig;
-// 	return 0;
-//    }
-//   }
-//   else {
-// 	lbs = sig;
-// 	return 0;
-//   }
-// }
-
-
-
-// void MaqEst(){
-
-//   AvSt = digitalRead(buttonAv);
-//   ChSt = digitalRead(buttonCh);  
- 
-//   switch (estado)
-//   {
-    
-// 	case 0:
-// 	delay(100);
-// 	lcd.clear();
-// 	lcd.home();    
-// 	lcd.print("Welcome to 0");
-// 	estado = 1;
-// 	break;
+      break;
 	 
-// 	case 1:
-// 	delay(100);
-// 	lcd.clear();
-// 	lcd.home();
-// 	lcd.print("Welcome to tdcs!");
-// 	delay(1000);
-// 	if ( !((Edge(ChSt)) ^ (Edge(AvSt))) ){ //
-//   	lcd.clear();
-//   	lcd.print("Escolha o tempo");
-//   	lcd.setCursor(1,1);
-//   	lcd.print("10min   ");
-//   	estado = 2;
-//   	}
-// //	else if (((Edge(AvSt)) == false)   ){ //|| ((Edge(AvSt))== false
-//   //	lcd.clear();
-// //  	lcd.print("Escolha o tempo");
-// //  	lcd.setCursor(1,1);
-// //  	lcd.print("10min   ");
-// //  	estado = 2;
-// //  	}
-// 	else {
-//   	estado = 1;
-// 	}
-//   	break;
- 	 
-//  	case 2:
-//  	delay(100);
-//  	if (((Edge(ChSt))== true) & ((Edge(AvSt))== false)){
-//   	lcd.clear();
-//   	lcd.print("Escolha o tempo");
-//   	lcd.setCursor(1,1);
-//   	lcd.print(" 	15min");
-//   	estado = 3; 	 
-//  	}
-//  	else if ( ((Edge(ChSt))== false) & ((Edge(AvSt))== true) ){
-//   	demora = dezmin;  //10 minutos
-//   	lcd.clear();
-//   	delay(50);
-//   	lcd.print("Escolha corrente");
-//   	lcd.setCursor(1,1);
-// //  	lcd.print("1mA 1,5mA 2mA");
-//   	lcd.print("1mA      	");
-//   	estado = 5; 	 
-//  	}
-//  	else {
-//   	estado = 2;
-//  	}
-//  	break;
+    case SET_TIME:
+      lcd.clear();
+      lcd.print("Escolha o tempo:");
+      lcd.setCursor(1,1);
+      lcd.print(cycleDuration/60000);
+      lcd.print("min");
 
-//  	case 3:
-//  	delay(100);
-//  	if (((Edge(ChSt))== true) & ((Edge(AvSt))== false)){
-//   	lcd.clear();
-//   	lcd.print("Escolha o tempo");
-//   	lcd.setCursor(1,1);
-//   	lcd.print("      	20min");
-//   	estado = 4; 	 
-//  	}
-//  	else if (((Edge(ChSt))== 0) & ((Edge(AvSt))==1)){
-//   	demora = quinzemin; //15 minutos
-//   	lcd.clear();
-//   	delay(50);
-//   	lcd.print("Escolha corrente");
-//   	lcd.setCursor(1,1);
-// //  	lcd.print("1mA 1,5mA 2mA");
-//   	lcd.print("1mA      	");
-//   	estado = 5; 	 
-//  	}
-//  	else {
-//   	estado = 3;
-//  	}
-//  	break;	 
+      if(!enterBtnSt) {
+        state = SET_CURRENT;
+        break;
+      }
 
-//  	case 4:
-//  	delay(100);
-//  	if (((Edge(ChSt))== true) & ((Edge(AvSt))== false)){
-//   	lcd.clear();
-//   	lcd.print("Escolha o tempo");
-//   	lcd.setCursor(1,1);
-//   	lcd.print("10min");
-//   	estado = 2; 	 
-//  	}
-//  	else if (((Edge(ChSt))== 0) & ((Edge(AvSt))==1)){
-//   	demora = vintemin; //20 minutos  
-//   	lcd.clear();
-//   	delay(100);
-//   	lcd.print("Escolha corrente");
-//   	lcd.setCursor(1,1);
-// //  	lcd.print("1mA 1,5mA 2mA");
-//   	lcd.print("1mA      	");
-//   	estado = 5; 	 
-//  	}
-//  	else {
-//   	estado = 4;
-//  	}
-//  	break;	 
+      if (decrementBtnSt & !incrementBtnSt) {
+        if (cycleDuration < (40 * cycleDurationIncrement))
+          cycleDuration += cycleDurationIncrement;
+      }
+      else if (!decrementBtnSt & incrementBtnSt) {
+        if (cycleDuration >= cycleDurationIncrement)
+          cycleDuration -= cycleDurationIncrement;
+      }
 
-//  	case 5:
-//  	delay(100);
-//  	if (((Edge(ChSt))== true) & ((Edge(AvSt))== false)){
-//   	lcd.clear();
-//   	lcd.print("Escolha corrente");
-//   	lcd.setCursor(1,1);
-//   	lcd.print("	1,5mA	");
-//   	estado = 6; 	 
-//  	}
-//  	else if ( ( (Edge(ChSt)) == 0) & ( (Edge(AvSt))==1) ){
-//   	lcd.clear();
-//   	lcd.home();
-//   	umV(demora); //1 mA
-//   	delay(50);
-//   	lcd.clear();
-//   	lcd.print("Concluido");
-//   	delay(5000);
-//   	estado = 1; 	 
-//  	}
-//  	else {
-//   	estado = 5;
-//  	}
-//  	break;	 
+      break;
 
-//  	case 6:
-//  	delay(100);
-//  	if (((Edge(ChSt))== true) & ((Edge(AvSt))== false)){
-//   	lcd.clear();
-//   	lcd.print("Escolha corrente");
-//   	lcd.setCursor(1,1);
-//   	lcd.print("      	2mA");
-//   	estado = 7; 	 
-//  	}
-//  	else if ( ( (Edge(ChSt) ) == 0) & ( ( Edge(AvSt) ) == 1) ){
-//   	lcd.clear();
-//   	lcd.home();
-//   	ummeioV(demora); //1,5 mA
-//   	delay(50);
-//   	lcd.clear();
-//   	lcd.print("Concluido");
-//   	delay(5000);
-//   	estado = 1; 	 
-//  	}
-//  	else {
-//   	estado = 6;
-//  	}
-//  	break;	 
+    case SET_CURRENT:
+      lcd.clear();
+      lcd.print("Escolha a corrente:");
+      lcd.setCursor(1,1);
+      lcd.print(current);
+      lcd.print("mA");
+      
+      if(!enterBtnSt) {
+        state = SHOW_TIMER;
+        break;
+      }
 
-//  	case 7:
-//  	delay(100);
-//  	if (((Edge(ChSt))== true) & ((Edge(AvSt))== false)){
-//   	lcd.clear();
-//   	lcd.print("Escolha corrente");
-//   	lcd.setCursor(1,1);
-//   	lcd.print("1mA      	");
-//   	estado = 5; 	 
-//  	}
-//  	else if ( ((Edge(ChSt))== 0) & ((Edge(AvSt) )== 1) ){
-//   	lcd.clear();
-//   	lcd.home();
-//   	doisV(demora); //2 mA
-//   	delay(50);
-//   	lcd.clear();
-//   	lcd.print("Concluido");
-//   	delay(5000);
-//   	estado = 1; 	 
-//  	}
-	 
-//  	else {
-//   	estado = 7;
-//   	}
-//  	break;	 
- 
-//   }
-// }
+      if (decrementBtnSt & !incrementBtnSt) {
+        if (current <= 3.9)
+          current += currentIncrement;
+      }
+      else if (!decrementBtnSt & incrementBtnSt) {
+        if (current > currentIncrement)
+          current -= currentIncrement;
+      }
 
+      break;
 
-// void loop() {
+ 	  case SHOW_TIMER:
+      uint32_t start, stop;
+      start = millis();
+      CD.start(cycleDuration);
+      analogWrite(PWM, (current/currentIncrement)*pwmIncrement);
+      while (CD.remaining() > 0 ) {
+        int seconds = floor(CD.remaining()/1000);
+        int minutes = floor(seconds/60);
+        lcd.clear();
+        lcd.print("Tempo: ");
+        if (minutes < 10){
+          lcd.print("0");
+        }
+        lcd.print(minutes);	 
+        lcd.print(":");
+        if( minutes >= 1){
+          seconds -= 60 * minutes;
+        }
+        if (seconds < 10){
+          lcd.print("0");
+        }
+        lcd.print(seconds);
+        lcd.setCursor(0,1);
+        lcd.print("Corrente: ");
+        lcd.print(current);
+        lcd.print("mA");
+        delay(50);
+      }
+      analogWrite(PWM, 0);
+      state = INIT;
+  }
+}
 
-
-//   MaqEst();
- 
-// }
-
-// // 0.1mA - 5.2
-// // 1mA - 51
-//  // +26
-// // 1.5mA - 77
-//  // +25
-// // 2.0mA - 102
-
-// void umV(unsigned long dem){  // 20% e 1V
- 
-//   uint32_t start, stop;
-//   start = millis();
-//   CD.start(dem);
-//   while (CD.remaining() > 0 )
-//   {
-//  	int sec = (CD.remaining())/1000;
-//  	int minu = (CD.remaining())/60000;
-//  	analogWrite(PWM, 51);
-//  	lcd.clear();
-//  	lcd.home();
-//  	if (minu < 10){
-//   	lcd.print("0");
-//  	}
-//  	if (minu < 1){
-//   	minu = 0;
-//  	}
-//  	lcd.print(minu);	 
-//  	lcd.print(":");
-//  	if( minu >= 1){
-//   	sec = (sec  - (60*minu));
-//  	}
-//  	if (sec < 10){
-//   	lcd.print("0");
-//  	}
-//  	lcd.print(sec);
-//  	delay(50);
-	 
-//   }
-// 	analogWrite(PWM, 0);
-
-// };
-
-// void ummeioV(unsigned long dem){ // 30% e 1,5V
-//   int Temp =0;
-//   uint32_t temporizadorF = 0;
-//   Temp = (dem/1000);
-//   while (Temp > 0){
-// 	analogWrite(PWM, 77);
-// 	lcd.setCursor(0,0);
-// 	lcd.print(((Temp/60) / 10));
-// 	lcd.print(((Temp/60) % 10));
-// 	lcd.print(":");
-// 	lcd.print(((Temp%60) / 10));
-// 	lcd.print(((Temp%60) % 10));
-// 	Temp--;
-// 	temporizadorF = millis();
-
-//   }
-//   analogWrite(PWM, 0);
-
-// };
-
-// void doisV(unsigned long dem){  	// 40% e 2V
-//   int Temp =0;
-//   uint32_t temporizadorF = 0;
-//   Temp = (dem/1000);
-//   while (millis() - temporizadorF >= dem){
-// 	analogWrite(PWM, 102);  
-// 	lcd.setCursor(0,0);
-// 	lcd.print(((Temp/60) / 10));
-// 	lcd.print(((Temp/60) % 10));
-// 	lcd.print(":");
-// 	lcd.print(((Temp%60) / 10));
-// 	lcd.print(((Temp%60) % 10));
-// 	Temp--;
-// 	temporizadorF = millis();
-//   }
- 
-//   analogWrite(PWM, 0);
-
-// };
-
-
+void loop() {
+  MaqEst();
+}
